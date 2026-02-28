@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Tic Tac Toe</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: white;
+    padding: 20px;
+}
+
+.game-container {
+    text-align: center;
+    background: rgba(255,255,255,0.05);
+    padding: 20px;
+    border-radius: 15px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+h1 {
+    margin-bottom: 10px;
+}
+
+.controls {
+    margin-bottom: 10px;
+}
+
+select, button {
+    padding: 7px 12px;
+    margin: 5px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+}
+
+button {
+    background: #3b82f6;
+    color: white;
+    transition: 0.3s;
+}
+
+button:hover {
+    transform: scale(1.05);
+}
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin: 15px 0;
+}
+
+.cell {
+    aspect-ratio: 1/1;
+    background: #0f172a;
+    border: 2px solid #3b82f6;
+    font-size: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.cell.win {
+    background: #22c55e;
+    animation: glow 0.5s infinite alternate;
+}
+
+@keyframes glow {
+    from { box-shadow: 0 0 5px #22c55e; }
+    to { box-shadow: 0 0 20px #22c55e; }
+}
+
+.status {
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.scoreboard {
+    margin: 10px 0;
+}
+</style>
+</head>
+<body>
+
+<div class="game-container">
+    <h1>Tic Tac Toe</h1>
+
+    <div class="controls">
+        <button onclick="setMode('pvp')">Player vs Player</button>
+        <button onclick="setMode('cpu')">Player vs CPU</button>
+        <br>
+        <select id="difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+        </select>
+    </div>
+
+    <div class="status" id="status">Select Mode</div>
+
+    <div class="board" id="board"></div>
+
+    <div class="scoreboard">
+        <p>X: <span id="scoreX">0</span> | O: <span id="scoreO">0</span></p>
+        <p>First to 3 wins the Tournament 🏆</p>
+    </div>
+
+    <button onclick="resetRound()">New Round</button>
+    <button onclick="resetTournament()">Reset Tournament</button>
+</div>
+
+<script>
+const boardElement = document.getElementById("board");
+const statusText = document.getElementById("status");
+const difficultySelect = document.getElementById("difficulty");
+
+let boardState = ["","","","","","","","",""];
+let currentPlayer = "X";
+let gameActive = false;
+let gameMode = "pvp";
+let scoreX = 0;
+let scoreO = 0;
+
+const winCombos = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+];
+
+function createBoard() {
+    boardElement.innerHTML = "";
+    boardState.forEach((_, index) => {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        cell.dataset.index = index;
+        cell.addEventListener("click", handleClick);
+        boardElement.appendChild(cell);
+    });
+}
+
+function setMode(mode) {
+    gameMode = mode;
+    resetRound();
+}
+
+function handleClick(e) {
+    const index = e.target.dataset.index;
+    if (!gameActive || boardState[index] !== "") return;
+
+    makeMove(index, currentPlayer);
+
+    if (checkWinner(currentPlayer)) return endGame(currentPlayer);
+    if (isDraw()) return drawGame();
+
+    currentPlayer = currentPlayer === "X" ? "O" : "X";
+    statusText.textContent = `Player ${currentPlayer}'s Turn`;
+
+    if (gameMode === "cpu" && currentPlayer === "O") {
+        setTimeout(cpuMove, 400);
+    }
+}
+
+function makeMove(index, player) {
+    boardState[index] = player;
+    boardElement.children[index].textContent = player;
+}
+
+function cpuMove() {
+    let move;
+    const level = difficultySelect.value;
+
+    if (level === "easy") {
+        move = randomMove();
+    } else if (level === "medium") {
+        move = Math.random() < 0.5 ? randomMove() : minimax(boardState,"O").index;
+    } else {
+        move = minimax(boardState,"O").index;
+    }
+
+    makeMove(move,"O");
+
+    if (checkWinner("O")) return endGame("O");
+    if (isDraw()) return drawGame();
+
+    currentPlayer = "X";
+    statusText.textContent = "Player X's Turn";
+}
+
+function randomMove() {
+    const empty = boardState.map((v,i)=> v===""?i:null).filter(v=>v!==null);
+    return empty[Math.floor(Math.random()*empty.length)];
+}
+
+function checkWinner(player) {
+    return winCombos.some(combo=>{
+        if(combo.every(i=>boardState[i]===player)){
+            combo.forEach(i=>boardElement.children[i].classList.add("win"));
+            return true;
+        }
+    });
+}
+
+function isDraw() {
+    return boardState.every(c=>c!=="");
+}
+
+function endGame(winner) {
+    gameActive=false;
+    statusText.textContent=`Player ${winner} Wins! 🎉`;
+
+    if(winner==="X"){ scoreX++; document.getElementById("scoreX").textContent=scoreX;}
+    else{ scoreO++; document.getElementById("scoreO").textContent=scoreO;}
+
+    if(scoreX===3 || scoreO===3){
+        statusText.textContent=`🏆 ${winner} Wins The Tournament!`;
+        gameActive=false;
+    }
+}
+
+function drawGame(){
+    statusText.textContent="It's a Draw!";
+    gameActive=false;
+}
+
+function resetRound(){
+    boardState=["","","","","","","","",""];
+    currentPlayer="X";
+    gameActive=true;
+    statusText.textContent="Player X's Turn";
+    createBoard();
+}
+
+function resetTournament(){
+    scoreX=0; scoreO=0;
+    document.getElementById("scoreX").textContent=0;
+    document.getElementById("scoreO").textContent=0;
+    resetRound();
+}
+
+/* MINIMAX */
+function minimax(newBoard, player){
+    const avail=newBoard.map((v,i)=>v===""?i:null).filter(v=>v!==null);
+
+    if(checkWin(newBoard,"X")) return {score:-10};
+    if(checkWin(newBoard,"O")) return {score:10};
+    if(avail.length===0) return {score:0};
+
+    const moves=[];
+    for(let i=0;i<avail.length;i++){
+        const move={};
+        move.index=avail[i];
+        newBoard[avail[i]]=player;
+
+        if(player==="O"){
+            move.score=minimax(newBoard,"X").score;
+        }else{
+            move.score=minimax(newBoard,"O").score;
+        }
+
+        newBoard[avail[i]]="";
+        moves.push(move);
+    }
+
+    let bestMove;
+    if(player==="O"){
+        let bestScore=-Infinity;
+        moves.forEach((m,i)=>{ if(m.score>bestScore){bestScore=m.score;bestMove=i;}});
+    }else{
+        let bestScore=Infinity;
+        moves.forEach((m,i)=>{ if(m.score<bestScore){bestScore=m.score;bestMove=i;}});
+    }
+
+    return moves[bestMove];
+}
+
+function checkWin(board,player){
+    return winCombos.some(combo=>combo.every(i=>board[i]===player));
+}
+
+createBoard();
+</script>
+
+</body>
+</html>
