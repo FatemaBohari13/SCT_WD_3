@@ -38,10 +38,10 @@ The application includes multiple game modes, AI difficulty levels, animations, 
 ---
 
 ## 🌐 Live Demo  
-https://FatemaBohari13.github.io/SC_WD_3/
+https://FatemaBohari13.github.io/SCT_WD_3/
 
 ## 📂 Repository Link  
-https://github.com/FatemaBohari13/SC_WD_3 
+https://github.com/FatemaBohari13/SCT_WD_3 
 
 
 
